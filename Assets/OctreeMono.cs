@@ -15,6 +15,7 @@ public class OctreeMono : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        /* Generate an octree */
         Stopwatch watch = new Stopwatch();
         watch.Start();
         octree = new Octree(bounds, levels);

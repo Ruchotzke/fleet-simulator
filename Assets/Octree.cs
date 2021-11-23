@@ -8,6 +8,7 @@ public class Octree
     public int Depth;
 
     public OctreeCell[][] tree; /* Level, Nodes */
+    public OctreeCell root;
     int[] subdivisions; /* Index: level, value: number of elements per dimension */
 
     public Octree(Bounds bounds, int depth)
@@ -26,6 +27,9 @@ public class Octree
 
         /* Fill the tree */
         GenerateOctree();
+
+        /* Set the alias for the root node */
+        root = tree[0][0];
     }
 
     void GenerateOctree()
@@ -65,24 +69,64 @@ public class Octree
                     for (int x = 0; x < subdivisions[level]; x++)
                     {
                         /* Each sublevel is 8 times subdivided from this one */
-                        /* XXX = XYZ POS/NEG */
-                        OctreeCell ppp = tree[level + 1][(2 * x + 1) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        OctreeCell ppn = tree[level + 1][(2 * x + 1) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        OctreeCell pnp = tree[level + 1][(2 * x + 1) + ((2 * y) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        OctreeCell pnn = tree[level + 1][(2 * x + 1) + ((2 * y) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        OctreeCell npp = tree[level + 1][(2 * x) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        OctreeCell npn = tree[level + 1][(2 * x) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        OctreeCell nnp = tree[level + 1][(2 * x) + ((2 * y) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        OctreeCell nnn = tree[level + 1][(2 * x) + ((2 * y) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])];
-                        bool IsOpen = ppp.IsOpen && ppn.IsOpen && pnp.IsOpen && pnn.IsOpen && npp.IsOpen && npn.IsOpen && nnp.IsOpen && nnn.IsOpen;
+                        OctreeCell[] children = new OctreeCell[] {
+                            tree[level + 1][(2 * x + 1) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])], //ppp
+                            tree[level + 1][(2 * x + 1) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])],
+                            tree[level + 1][(2 * x + 1) + ((2 * y) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])],
+                            tree[level + 1][(2 * x + 1) + ((2 * y) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])],
+                            tree[level + 1][(2 * x) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])],
+                            tree[level + 1][(2 * x) + ((2 * y + 1) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])],
+                            tree[level + 1][(2 * x) + ((2 * y) * subdivisions[level + 1]) + ((2 * z + 1) * subdivisions[level + 1] * subdivisions[level + 1])],
+                            tree[level + 1][(2 * x) + ((2 * y) * subdivisions[level + 1]) + ((2 * z) * subdivisions[level + 1] * subdivisions[level + 1])]              //nnn
+                        };
+                        bool IsOpen = true;
+                        foreach(var child in children) 
+                        { 
+                            if (!child.IsOpen)
+                            {
+                                IsOpen = false;
+                                break;
+                            }
+                        }
 
-                        Bounds total = ppp.bounds;
-                        total.Encapsulate(nnn.bounds.min);
-                        tree[level][x + y * subdivisions[level] + z * subdivisions[level] * subdivisions[level]] = new OctreeCell(total, IsOpen);
+                        Bounds total = children[0].bounds;
+                        total.Encapsulate(children[7].bounds.min);
+                        OctreeCell newCell = new OctreeCell(total, IsOpen);
+                        newCell.children = children;
+                        tree[level][x + y * subdivisions[level] + z * subdivisions[level] * subdivisions[level]] = newCell;
                     }
                 }
             }
         }
+    }
+
+    public OctreeCell[] FindPoint(Vector3 point)
+    {
+        OctreeCell[] ret = new OctreeCell[Depth];
+
+        if (OuterBounds.Contains(point))
+        {
+            ret[0] = root;
+        }
+        else
+        {
+            Debug.Log("Supplied Point is not in bounds of octree.");
+            return null;
+        }
+        
+        for(int level = 1; level < Depth; level++)
+        {
+            foreach(var child in ret[level - 1].children)
+            {
+                if (child.bounds.Contains(point))
+                {
+                    ret[level] = child;
+                    break;
+                }
+            }
+        }
+
+        return ret;
     }
 }
 
@@ -97,8 +141,6 @@ public class OctreeCell
 
     public OctreeCell(Bounds bounds, bool IsOpen)
     {
-        children = new OctreeCell[8];
-
         this.bounds = bounds;
         this.IsOpen = IsOpen;
     }
