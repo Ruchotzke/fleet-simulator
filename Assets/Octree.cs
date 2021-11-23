@@ -52,7 +52,42 @@ public class Octree
 
                         /* Generate a new cell */
                         bool overlap = Physics.OverlapBox(center, cellWidth / 2.0f).Length != 0;
-                        tree[level][x + y * subdivisions[level] + z * subdivisions[level] * subdivisions[level]] = new OctreeCell(new Bounds(center, cellWidth), !overlap);
+                        OctreeCell newCell = new OctreeCell(new Bounds(center, cellWidth), !overlap);
+                        tree[level][x + y * subdivisions[level] + z * subdivisions[level] * subdivisions[level]] = newCell;
+
+                        /* Each cell is responsible for adding its neighbors if they already exist */
+                        /* Cells behind us (-x, -y, or -z) already exist. Our future positive neighbors will add us */
+                        /* Neighbors are only for open cells. If a cell is closed it has no neighbors */
+                        if (!overlap)
+                        {
+                            if (x > 0)
+                            {
+                                OctreeCell other = tree[level][(x - 1) + y * subdivisions[level] + z * subdivisions[level] * subdivisions[level]];
+                                if (other.IsOpen)
+                                {
+                                    other.neighbors.Add(newCell);
+                                    newCell.neighbors.Add(other);
+                                }
+                            }
+                            if (y > 0)
+                            {
+                                OctreeCell other = tree[level][x + (y - 1) * subdivisions[level] + z * subdivisions[level] * subdivisions[level]];
+                                if (other.IsOpen)
+                                {
+                                    other.neighbors.Add(newCell);
+                                    newCell.neighbors.Add(other);
+                                }
+                            }
+                            if (z > 0)
+                            {
+                                OctreeCell other = tree[level][x + y * subdivisions[level] + (z - 1) * subdivisions[level] * subdivisions[level]];
+                                if (other.IsOpen)
+                                {
+                                    other.neighbors.Add(newCell);
+                                    newCell.neighbors.Add(other);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -89,11 +124,14 @@ public class Octree
                             }
                         }
 
+                        /* Generate a new cell */
                         Bounds total = children[0].bounds;
                         total.Encapsulate(children[7].bounds.min);
                         OctreeCell newCell = new OctreeCell(total, IsOpen);
                         newCell.children = children;
                         tree[level][x + y * subdivisions[level] + z * subdivisions[level] * subdivisions[level]] = newCell;
+
+                        /* Refactor neighbors */
                     }
                 }
             }
@@ -137,11 +175,13 @@ public class OctreeCell
     /* Children are packed into an array based on their position */
     /* (+++), (++-), (+-+), (+--), (-++), (-+-), (--+), (---)  for (xyz axes) */
     public OctreeCell[] children;
+    public List<OctreeCell> neighbors;
     public bool IsOpen;
 
     public OctreeCell(Bounds bounds, bool IsOpen)
     {
         this.bounds = bounds;
         this.IsOpen = IsOpen;
+        neighbors = new List<OctreeCell>();
     }
 }
