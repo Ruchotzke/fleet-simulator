@@ -131,7 +131,26 @@ public class Octree
                         newCell.children = children;
                         tree[level][x + y * subdivisions[level] + z * subdivisions[level] * subdivisions[level]] = newCell;
 
-                        /* Refactor neighbors */
+                        /* Refactor neighbors if necessary */
+                        if (newCell.IsOpen)
+                        {
+                            List<OctreeCell> lowerNeighbors = new List<OctreeCell>();
+                            foreach (var cell in children)
+                            {
+                                foreach (var neighbor in cell.neighbors)
+                                {
+                                    if(children[0] != neighbor && children[1] != neighbor && children[2] != neighbor && children[3] != neighbor &&
+                                        children[4] != neighbor && children[5] != neighbor && children[6] != neighbor && children[7] != neighbor)
+                                    {
+                                        if (!lowerNeighbors.Contains(neighbor))
+                                        {
+                                            lowerNeighbors.Add(neighbor);
+                                        }
+                                    }
+                                }
+                            }
+                            newCell.neighbors = lowerNeighbors;
+                        }
                     }
                 }
             }
