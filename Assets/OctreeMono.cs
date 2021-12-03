@@ -6,7 +6,7 @@ using Debug = UnityEngine.Debug;
 
 public class OctreeMono : MonoBehaviour
 {
-    Octree octree;
+    LinearOctree octree;
 
     [SerializeField] Bounds bounds;
     [SerializeField] int levels;
@@ -18,9 +18,14 @@ public class OctreeMono : MonoBehaviour
         /* Generate an octree */
         Stopwatch watch = new Stopwatch();
         watch.Start();
-        octree = new Octree(bounds, levels);
+        octree = new LinearOctree(bounds, levels);
         watch.Stop();
         Debug.Log("Elapsed Time: " + watch.Elapsed.Milliseconds);
+
+        for(int i = 0; i < levels; i++)
+        {
+            Debug.Log("LEVEL " + i + ": " + octree.GetLevel(i).Count);
+        }
     }
 
     private void OnDrawGizmos()
@@ -28,11 +33,10 @@ public class OctreeMono : MonoBehaviour
         /* Highlight all filled voxels */
         if(octree != null)
         {
-            Gizmos.color = new Color(1.0f, 0.0f, 0.0f, 0.2f);
-            foreach (var voxel in octree.tree[viewLevel])
+            Gizmos.color = new Color(1.0f, 0.0f, 0.0f, 0.5f);
+            foreach(var node in octree.GetLevel(viewLevel))
             {
-                if (voxel.IsOpen) continue;
-                Gizmos.DrawCube(voxel.bounds.center, voxel.bounds.size);
+                Gizmos.DrawCube(node.bounds.center, node.bounds.size);
             }
         }
     }
