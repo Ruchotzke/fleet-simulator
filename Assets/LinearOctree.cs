@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class LinearOctree
 {
-    public static Dictionary<uint, LinearOctreeNode> Tree = new Dictionary<uint, LinearOctreeNode>();
+    public Dictionary<uint, LinearOctreeNode> Tree = new Dictionary<uint, LinearOctreeNode>();
 
     public int Depth;
     public Bounds OuterBounds;
@@ -13,7 +13,6 @@ public class LinearOctree
     {
         this.Depth = depth;
         this.OuterBounds = bounds;
-        Debug.Log(this.OuterBounds);
 
         /* Generate an Octree */
         GenerateOctree();
@@ -25,7 +24,7 @@ public class LinearOctree
         Collider[] colliders = new Collider[1];
 
         /* Generate a root node */
-        LinearOctreeNode root = new LinearOctreeNode(Physics.OverlapBoxNonAlloc(OuterBounds.center, OuterBounds.extents, colliders) == 0, OuterBounds, null);
+        LinearOctreeNode root = new LinearOctreeNode(this, Physics.OverlapBoxNonAlloc(OuterBounds.center, OuterBounds.extents, colliders) == 0, OuterBounds, null);
         if (root.Empty)
         {
             Debug.LogWarning("EMPTY OCTREE");
@@ -47,7 +46,7 @@ public class LinearOctree
                 foreach(var octant in OctantExtensions.Octants)
                 {
                     Bounds octantBounds = node.GetSubBounds(octant);
-                    LinearOctreeNode sub = new LinearOctreeNode(Physics.OverlapBoxNonAlloc(octantBounds.center, octantBounds.extents, colliders) == 0, octantBounds, node, octant);
+                    LinearOctreeNode sub = new LinearOctreeNode(this, Physics.OverlapBoxNonAlloc(octantBounds.center, octantBounds.extents, colliders) == 0, octantBounds, node, octant);
                     if (!sub.Empty) nextLevelNodes.Add(sub);
                 }
             }
@@ -90,12 +89,14 @@ public class LinearOctreeNode : System.IComparable<LinearOctreeNode>
     public uint LocCode;
     public bool Empty;
     public Bounds bounds;
+    public LinearOctree tree;
 
-    public LinearOctreeNode(bool isEmpty, Bounds bounds, LinearOctreeNode parent, Octant octant = Octant.LDB)
+    public LinearOctreeNode(LinearOctree tree, bool isEmpty, Bounds bounds, LinearOctreeNode parent, Octant octant = Octant.LDB)
     {
         /* Set Parameters */
         this.bounds = bounds;
         this.Empty = isEmpty;
+        this.tree = tree;
 
         /* Construct a new node */
         if (parent == null)
@@ -109,17 +110,18 @@ public class LinearOctreeNode : System.IComparable<LinearOctreeNode>
         }
 
         /* Add it to the hash tree */
-        LinearOctree.Tree.Add(LocCode, this);
+        tree.Tree.Add(LocCode, this);
     }
 
     public LinearOctreeNode GetParent()
     {
-        return LinearOctree.Tree[LocCode >> 3];
+        return tree.Tree[LocCode >> 3];
     }
 
     public LinearOctreeNode GetChild(Octant octant)
     {
-        return LinearOctree.Tree[(LocCode << 3) | octant.GetBitCode()];
+        if (!tree.Tree.ContainsKey((LocCode << 3) | octant.GetBitCode())) return null;
+        return tree.Tree[(LocCode << 3) | octant.GetBitCode()];
     }
 
     public Bounds GetSubBounds(Octant octant)
@@ -133,5 +135,18 @@ public class LinearOctreeNode : System.IComparable<LinearOctreeNode>
     {
         if (this.LocCode < other.LocCode) return -1;
         return 1; //we will never have 2 equal nodes
+    }
+
+    public bool IsLeaf
+    {
+        get
+        {
+            if (Empty) return false;
+            foreach(var octant in OctantExtensions.Octants)
+            {
+                if (GetChild(octant) != null) return false;
+            }
+            return true;
+        }
     }
 }

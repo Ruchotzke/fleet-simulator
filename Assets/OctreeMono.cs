@@ -21,23 +21,39 @@ public class OctreeMono : MonoBehaviour
         octree = new LinearOctree(bounds, levels);
         watch.Stop();
         Debug.Log("Elapsed Time: " + watch.Elapsed.Milliseconds);
+    }
 
-        for(int i = 0; i < levels; i++)
-        {
-            Debug.Log("LEVEL " + i + ": " + octree.GetLevel(i).Count);
-        }
+    private void Update()
+    {
+        octree = new LinearOctree(bounds, levels);
     }
 
     private void OnDrawGizmos()
     {
-        /* Highlight all filled voxels */
+        /* Highlight all filled voxels for a level */
         if(octree != null)
         {
             Gizmos.color = new Color(1.0f, 0.0f, 0.0f, 0.5f);
-            foreach(var node in octree.GetLevel(viewLevel))
+            //foreach(var node in octree.GetLevel(viewLevel))
+            //{
+            //    Gizmos.DrawCube(node.bounds.center, node.bounds.size);
+            //}
+
+            foreach (var key in octree.Tree.Keys)
             {
-                Gizmos.DrawCube(node.bounds.center, node.bounds.size);
+                if (!octree.Tree[key].Empty && octree.Tree[key].IsLeaf)
+                {
+                    Gizmos.DrawCube(octree.Tree[key].bounds.center, octree.Tree[key].bounds.size);
+                }
             }
+
+            //foreach (var key in octree.Tree.Keys)
+            //{
+            //    if (octree.Tree[key].Empty)
+            //    {
+            //        Gizmos.DrawCube(octree.Tree[key].bounds.center, octree.Tree[key].bounds.size);
+            //    }
+            //}
         }
     }
 }
