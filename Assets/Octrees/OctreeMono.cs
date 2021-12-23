@@ -10,7 +10,7 @@ public class OctreeMono : MonoBehaviour
 
     [SerializeField] Bounds bounds;
     [SerializeField] int levels;
-    [SerializeField, Range(0, 6)] int viewLevel = 0;
+    //[SerializeField, Range(0, 6)] int viewLevel = 0;
 
     // Start is called before the first frame update
     void Start()
