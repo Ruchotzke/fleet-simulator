@@ -42,6 +42,39 @@ namespace PointerOctree
                 }
             }
 
+            /* Iteratively connect neighbors */
+            for (int x = 0; x < nodes - 1; x++)
+            {
+                for (int y = 0; y < nodes - 1; y++)
+                {
+                    for (int z = 0; z < nodes - 1; z++)
+                    {
+                        /* Each node will have 6 face neighbors, 12 edge neighbors, and 8 vertex neighbors */
+                        /* We are moving bottom to top, so just connect the top half of each */
+                        OctreeNode curr = baseNodes[x, y, z];
+
+                        /* 3 Face Neighbors */
+                        curr.FaceNeighbors.Add(baseNodes[x + 1, y, z]);
+                        curr.FaceNeighbors.Add(baseNodes[x, y + 1, z]);
+                        curr.FaceNeighbors.Add(baseNodes[x, y, z + 1]);
+                        baseNodes[x + 1, y, z].FaceNeighbors.Add(curr);
+                        baseNodes[x, y + 1, z].FaceNeighbors.Add(curr);
+                        baseNodes[x, y, z + 1].FaceNeighbors.Add(curr);
+
+                        /* 6 Edge Neighbors */
+                        curr.EdgeNeighbors.Add(baseNodes[x + 1, y, z]);
+                        curr.EdgeNeighbors.Add(baseNodes[x, y + 1, z]);
+                        curr.EdgeNeighbors.Add(baseNodes[x, y, z + 1]);
+                        curr.EdgeNeighbors.Add(baseNodes[x + 1, y, z]);
+                        curr.EdgeNeighbors.Add(baseNodes[x, y + 1, z]);
+                        curr.EdgeNeighbors.Add(baseNodes[x, y, z + 1]);
+
+                        /* 4 Vertex Neighbors */
+
+                    }
+                }
+            }
+
             /* Join the nodes iteratively to generate an octree structure and maintain neighbors */
 
             /* Prune off unnecessary nodes (completely filled nodes) to reduce memory footprint */
@@ -55,6 +88,12 @@ namespace PointerOctree
     {
         public Bounds Area;
         public bool IsFilled;
+        public OctreeNode Parent;
+        public OctreeNode[] Children;
+
+        public List<OctreeNode> FaceNeighbors = new List<OctreeNode>();
+        public List<OctreeNode> EdgeNeighbors = new List<OctreeNode>();
+        public List<OctreeNode> CornerNeighbors = new List<OctreeNode>();
 
         public OctreeNode(Bounds area, bool isFilled)
         {
